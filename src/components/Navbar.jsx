@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Sun, Moon, Github, Menu, X, HelpCircle, DollarSign, RotateCcw, Settings, PanelLeft, ExternalLink } from 'lucide-react'
+import { Sun, Moon, Menu, X, HelpCircle, DollarSign, RotateCcw, Settings, PanelLeft, ExternalLink, Command } from 'lucide-react'
+import Github from './icons/Github'
 
 import Logo from './Logo'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
+import QuickJumpModal from './QuickJumpModal'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useSessionSpend } from '../lib/useSessionSpend'
 
@@ -15,6 +17,7 @@ import { useSessionSpend } from '../lib/useSessionSpend'
 export default function Navbar({ sidebarOpen, setSidebarOpen }) {
   const [darkMode, setDarkMode] = useState(true)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showQuickJump, setShowQuickJump] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showSpendPopup, setShowSpendPopup] = useState(false)
   const { totalSpend, runs, clearSession } = useSessionSpend()
@@ -22,6 +25,10 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
 
   useKeyboardShortcuts({
     '?': () => setShowShortcuts(true),
+    'Control+k': (e) => {
+      e?.preventDefault?.()
+      setShowQuickJump((prev) => !prev)
+    },
   })
 
   useEffect(() => {
@@ -115,6 +122,16 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
               <span className="hidden lg:inline">Star</span>
               <ExternalLink size={12} aria-hidden="true" />
             </a>
+
+            <button
+              id="nav-quick-jump-btn"
+              onClick={() => setShowQuickJump(true)}
+              className="btn-icon hidden md:inline-flex"
+              aria-label="Quick jump (Ctrl+K)"
+              title="Quick jump (Ctrl+K)"
+            >
+              <Command size={16} />
+            </button>
 
             <button
               onClick={() => setShowShortcuts(true)}
@@ -221,13 +238,13 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
               </a>
               <button
                 onClick={() => {
-                  setShowShortcuts(true)
+                  setShowQuickJump(true)
                   setMobileMenuOpen(false)
                 }}
                 className="btn-secondary"
               >
-                <HelpCircle size={14} />
-                Shortcuts
+                <Command size={14} />
+                Quick Jump
               </button>
             </div>
           </div>
@@ -235,6 +252,7 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
       </header>
 
       <KeyboardShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <QuickJumpModal isOpen={showQuickJump} onClose={() => setShowQuickJump(false)} />
     </>
   )
 }
