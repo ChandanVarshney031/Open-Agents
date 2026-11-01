@@ -28,8 +28,20 @@ export const useKeyboardShortcuts = (shortcuts) => {
       // must not fire while the user is in a text field. Keys like Escape keep working.
       const isPlainKey = singleKey.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
 
-      if (shortcuts[shortcutStr] && !(isPlainKey && isTyping)) {
-        shortcuts[shortcutStr](event);
+      let handler = shortcuts[shortcutStr];
+      if (!handler && shortcutStr) {
+        const lower = shortcutStr.toLowerCase();
+        const matched = Object.keys(shortcuts).find((k) => {
+          const norm = k
+            .replace(/^(ctrl|cmd|command)\+/i, 'Control+')
+            .toLowerCase();
+          return norm === lower;
+        });
+        if (matched) handler = shortcuts[matched];
+      }
+
+      if (handler && !(isPlainKey && isTyping)) {
+        handler(event);
       } else if (shortcuts[singleKey] && !isTyping) {
         // For single keys like '/' or '?', we usually don't want them to fire if we are typing in an input
         shortcuts[singleKey](event);

@@ -5,6 +5,7 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
 
   const shortcuts = [
     { key: 'Ctrl + Enter', description: 'Run Agent or Workflow', icon: <CornerDownLeft size={14} /> },
+    { key: 'Ctrl + K', description: 'Quick jump to agent, collection, workflow, or settings', icon: <Command size={14} /> },
     { key: '/', description: 'Focus Search Bar', icon: <Search size={14} /> },
     { key: 'Esc', description: 'Clear Inputs / Collapse Playground', icon: <X size={14} /> },
     { key: 'Alt + 1 / 2 / 3', description: 'Toggle Provider (OpenAI, Anthropic, Gemini)', icon: <Type size={14} /> },

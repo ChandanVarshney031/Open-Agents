@@ -4,6 +4,7 @@ import { describe, it, vi } from 'vitest'
 import AgentCard from '../components/AgentCard'
 import CustomSelect from '../components/CustomSelect'
 import Navbar from '../components/Navbar'
+import QuickJumpModal from '../components/QuickJumpModal'
 import SettingsPage from '../pages/SettingsPage'
 import { expectNoA11yViolations } from './a11y'
 
@@ -50,6 +51,15 @@ describe('automated accessibility checks', () => {
     const { container } = render(
       <MemoryRouter>
         <Navbar sidebarOpen={false} setSidebarOpen={vi.fn()} />
+      </MemoryRouter>
+    )
+    await expectNoA11yViolations(container)
+  })
+
+  it('checks the quick jump dialog', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <QuickJumpModal isOpen={true} onClose={vi.fn()} workflows={[]} />
       </MemoryRouter>
     )
     await expectNoA11yViolations(container)

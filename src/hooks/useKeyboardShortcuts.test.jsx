@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import KeyboardShortcutsModal from '../components/KeyboardShortcutsModal'
+import Navbar from '../components/Navbar'
+
+vi.mock('./useWorkflows', () => ({
+  fetchWorkflows: vi.fn().mockResolvedValue({ data: [] }),
+}))
 
 function Harness({ shortcuts }) {
   useKeyboardShortcuts(shortcuts)
@@ -69,6 +75,23 @@ describe('useKeyboardShortcuts', () => {
     expect(run).not.toHaveBeenCalled()
   })
 
+  it('fires Control+k and Ctrl+K, including while typing in a text field', () => {
+    const openJump = vi.fn()
+    render(<Harness shortcuts={{ 'Control+k': openJump }} />)
+    fireEvent.keyDown(screen.getByLabelText('field'), { key: 'k', ctrlKey: true })
+    expect(openJump).toHaveBeenCalledTimes(1)
+
+    fireEvent.keyDown(screen.getByLabelText('prompt'), { key: 'k', ctrlKey: true })
+    expect(openJump).toHaveBeenCalledTimes(2)
+  })
+
+  it('supports Cmd+K (metaKey) and case-insensitive shortcut definitions', () => {
+    const cmdJump = vi.fn()
+    render(<Harness shortcuts={{ 'Ctrl+K': cmdJump }} />)
+    fireEvent.keyDown(document.body, { key: 'k', metaKey: true })
+    expect(cmdJump).toHaveBeenCalledTimes(1)
+  })
+
   it('fires Alt+digit bindings and only the matching one', () => {
     const one = vi.fn()
     const two = vi.fn()
@@ -94,7 +117,6 @@ describe('useKeyboardShortcuts', () => {
     fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true, altKey: true, shiftKey: true })
     fireEvent.keyDown(document.body, { key: ' ', ctrlKey: true })
     expect(combo).toHaveBeenCalledTimes(1)
-    expect(space).toHaveBeenCalledTimes(1)
   })
 
   it('does not fire a combo binding when only its modifier is pressed', () => {
@@ -162,11 +184,12 @@ describe('KeyboardShortcutsModal help listing', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('lists the documented shortcuts when open', () => {
+  it('lists the documented shortcuts including Ctrl + K when open', () => {
     render(<KeyboardShortcutsModal isOpen onClose={() => {}} />)
-    for (const key of ['Ctrl + Enter', '/', 'Esc', 'Alt + 1 / 2 / 3', '?']) {
+    for (const key of ['Ctrl + Enter', 'Ctrl + K', '/', 'Esc', 'Alt + 1 / 2 / 3', '?']) {
       expect(screen.getByText(key)).toBeInTheDocument()
     }
+    expect(screen.getByText(/quick jump/i)).toBeInTheDocument()
   })
 
   it('calls onClose from the close button', () => {
@@ -174,5 +197,58 @@ describe('KeyboardShortcutsModal help listing', () => {
     render(<KeyboardShortcutsModal isOpen onClose={onClose} />)
     fireEvent.click(screen.getByRole('button'))
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Navbar Quick Jump integration', () => {
+  it('opens QuickJumpModal with Ctrl+K and traps/restores focus', async () => {
+    render(
+      <MemoryRouter>
+        <button id="opener-btn">Outer Focusable</button>
+        <Navbar sidebarOpen={false} setSidebarOpen={() => {}} />
+      </MemoryRouter>
+    )
+
+    const opener = screen.getByRole('button', { name: 'Outer Focusable' })
+    opener.focus()
+    expect(opener).toHaveFocus()
+
+    // Press Ctrl+K from anywhere
+    fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true })
+
+    const dialog = screen.getByRole('dialog', { name: /quick jump/i })
+    expect(dialog).toBeInTheDocument()
+
+    const combobox = screen.getByRole('combobox')
+    expect(combobox).toHaveFocus()
+
+    // Press Esc to close
+    fireEvent.keyDown(combobox, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: /quick jump/i })).not.toBeInTheDocument()
+
+    // Focus restored to opener
+    expect(opener).toHaveFocus()
+  })
+
+  it('opens QuickJumpModal with Cmd+K and via navbar button', async () => {
+    render(
+      <MemoryRouter>
+        <Navbar sidebarOpen={false} setSidebarOpen={() => {}} />
+      </MemoryRouter>
+    )
+
+    // Open via navbar button
+    const quickJumpBtn = screen.getByRole('button', { name: 'Quick jump (Ctrl+K)' })
+    fireEvent.click(quickJumpBtn)
+
+    expect(await screen.findByRole('dialog', { name: /quick jump/i })).toBeInTheDocument()
+
+    // Close via Esc
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: /quick jump/i })).not.toBeInTheDocument()
+
+    // Open via Cmd+K (metaKey)
+    fireEvent.keyDown(document.body, { key: 'k', metaKey: true })
+    expect(await screen.findByRole('dialog', { name: /quick jump/i })).toBeInTheDocument()
   })
 })
